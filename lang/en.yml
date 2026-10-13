@@ -1,0 +1,54 @@
+en:
+  SilverShop\StockAlerts\Model\StockAlert:
+    SINGULARNAME: 'Stock alert'
+    PLURALNAME: 'Stock alerts'
+    db_Email: 'Email address'
+    db_Type: 'Type'
+    db_Status: 'Status'
+    db_Consent: 'Consent'
+    db_ConsentAt: 'Consent given at'
+    db_Source: 'Source'
+    db_SubscribedPrice: 'Price at subscribe'
+    db_ConfirmedAt: 'Confirmed at'
+    db_NotifiedAt: 'Notified at'
+    has_one_Member: 'Member'
+    UnknownProduct: '(removed product)'
+  SilverShop\StockAlerts\Admin\StockAlertsAdmin:
+    MENUTITLE: 'Stock alerts'
+  SilverShop\StockAlerts\Control\StockAlertController:
+    Title: 'Stock alerts'
+    CsrfError: 'Your session has expired. Please reload the page and try again.'
+    NoProduct: 'Sorry, we could not find that product.'
+    InvalidEmail: 'Please enter a valid email address.'
+    CheckInbox: "Almost there! Check your inbox to confirm, and we'll email you the moment it's back."
+    Confirmed: "You're on the list — we'll email you the moment it's back in stock."
+    DoneTitle: "We'll let you know"
+  SilverShop\StockAlerts\Service\StockAlertService:
+    ConfirmSubject: 'Confirm your back-in-stock alert for {product}'
+    BackInStockSubject: '{product} is back in stock'
+  SilverShop\StockAlerts\Extension\StockAlertProductExtension:
+    NWaiting: '{count} customer(s) are waiting for a back-in-stock alert on this product.'
+  SilverShop\StockAlerts\Job\NotifyBackInStockJob:
+    TITLE: 'Notify back-in-stock waiters for {class} #{id}'
+  SilverShop\StockAlerts\Job\ScanStockAlertsJob:
+    TITLE: 'Scan for back-in-stock alerts to send'
+  SilverShop\StockAlerts:
+    ConfirmTitle: 'Confirm your stock alert'
+    ConfirmGreeting: 'Confirm your back-in-stock alert'
+    ConfirmInstruction: "Please confirm you'd like one email when <strong>{product}</strong> is back in stock."
+    ConfirmButton: 'Confirm my alert'
+    ConfirmFallback: "If the button doesn't work, copy this link into your browser:"
+    ConfirmIgnore: "If you didn't request this, you can safely ignore this email, or"
+    Unsubscribe: 'unsubscribe'
+    BackTitle: 'Back in stock'
+    BackHeading: "Good news — it's back!"
+    BackBody: '<strong>{product}</strong> is back in stock. Stock can go quickly, so grab it while it lasts.'
+    BackButton: 'View the product'
+    BackUnsub: 'You received this because you asked to be notified. No further emails will be sent for this alert.'
+    PageConfirmed: "You're on the list"
+    PageConfirmedMsg: "Thanks for confirming. We'll email you the moment <strong>{product}</strong> is back in stock."
+    PageBackToProduct: 'Back to the product'
+    PageUnsubscribed: "You've been unsubscribed"
+    PageUnsubscribedMsg: "You won't receive this stock alert anymore."
+    PageInvalid: 'This link is not valid'
+    PageInvalidMsg: 'This confirmation or unsubscribe link has expired or is incorrect.'

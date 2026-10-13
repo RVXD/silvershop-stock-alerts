@@ -1,0 +1,62 @@
+---
+Name: silvershop-stock-alerts
+After:
+  - '#silvershop'
+---
+# Per-product notify gate + the storefront buy-box/sticky-bar accessors. Applied whenever silvershop/core is
+# present; every accessor is defensively guarded so a product without the stock module (or before a dev/build)
+# can never fatal the PDP — the notify UI simply stays hidden and the theme falls back to its plain "Sold out".
+SilverShop\Page\Product:
+  extensions:
+    - SilverShop\StockAlerts\Extension\StockAlertProductExtension
+
+SilverShop\Page\ProductController:
+  extensions:
+    - SilverShop\StockAlerts\Extension\StockAlertProductControllerExtension
+
+SilverShop\StockAlerts\Service\StockAlertService:
+  # Back-in-stock alerts on/off (price-drop is v2).
+  back_in_stock_enabled: true
+  # Guests must confirm via a double-opt-in email before the alert is armed (GDPR-friendly).
+  double_opt_in: true
+  # Logged-in members (identity established) are auto-confirmed instead of being emailed a confirm link.
+  member_auto_confirm: true
+  # Unconfirmed Pending alerts older than this are expired/pruned by the scan job (mirrors Woo's
+  # "delete unverified after N days").
+  verify_ttl_days: 7
+  # Suppress a second notify to the same email+buyable within this window, so a multi-write restock
+  # notifies once (Woo's 1-hour reference).
+  renotify_window_mins: 60
+  # Throttle a hot restock: cap how many alerts a single run sends, in batches.
+  max_per_run: 100
+  batch_size: 50
+  # Sender address for the alert emails (falls back to store-profile / SiteConfig / admin email when empty).
+  from_email: ''
+
+---
+Name: silvershop-stock-alerts-stock
+Only:
+  moduleexists: 'silvershop/stock'
+After:
+  - '#silvershop'
+---
+# The restock trigger: watch every ProductWarehouseStock write for a false->true availability flip.
+# Guarded on silvershop/stock so back-in-stock stays dormant (no trigger, no notify UI) without it.
+SilverShop\Stock\Model\ProductWarehouseStock:
+  extensions:
+    - SilverShop\StockAlerts\Extension\ProductWarehouseStockExtension
+
+---
+Name: silvershop-stock-alerts-queuedjobs
+After:
+  - '#queuedjobs'
+---
+# The instant dispatch job is retried a few times with a growing delay for transient mail/DB errors.
+SilverShop\StockAlerts\Job\NotifyBackInStockJob:
+  retry_max_attempts: 3
+  retry_initial_delay: 60
+  retry_falloff_multiplier: 2
+
+# The recurring safety-net scan re-queues itself this many minutes after each run.
+SilverShop\StockAlerts\Job\ScanStockAlertsJob:
+  scan_interval_mins: 30

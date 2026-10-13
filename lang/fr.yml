@@ -1,0 +1,54 @@
+fr:
+  SilverShop\StockAlerts\Model\StockAlert:
+    SINGULARNAME: 'Alerte de stock'
+    PLURALNAME: 'Alertes de stock'
+    db_Email: 'Adresse e-mail'
+    db_Type: 'Type'
+    db_Status: 'Statut'
+    db_Consent: 'Consentement'
+    db_ConsentAt: 'Consentement donné le'
+    db_Source: 'Source'
+    db_SubscribedPrice: "Prix lors de l'inscription"
+    db_ConfirmedAt: 'Confirmé le'
+    db_NotifiedAt: 'Notifié le'
+    has_one_Member: 'Membre'
+    UnknownProduct: '(produit supprimé)'
+  SilverShop\StockAlerts\Admin\StockAlertsAdmin:
+    MENUTITLE: 'Alertes de stock'
+  SilverShop\StockAlerts\Control\StockAlertController:
+    Title: 'Alertes de stock'
+    CsrfError: 'Votre session a expiré. Veuillez recharger la page et réessayer.'
+    NoProduct: "Désolé, nous n'avons pas trouvé ce produit."
+    InvalidEmail: 'Veuillez saisir une adresse e-mail valide.'
+    CheckInbox: "Presque terminé ! Confirmez depuis votre boîte de réception et nous vous préviendrons dès son retour."
+    Confirmed: 'Vous êtes sur la liste — nous vous préviendrons dès son retour en stock.'
+    DoneTitle: 'Nous vous tiendrons au courant'
+  SilverShop\StockAlerts\Service\StockAlertService:
+    ConfirmSubject: 'Confirmez votre alerte de stock pour {product}'
+    BackInStockSubject: '{product} est de nouveau en stock'
+  SilverShop\StockAlerts\Extension\StockAlertProductExtension:
+    NWaiting: '{count} client(s) attendent une alerte de retour en stock pour ce produit.'
+  SilverShop\StockAlerts\Job\NotifyBackInStockJob:
+    TITLE: 'Notifier les personnes en attente pour {class} #{id}'
+  SilverShop\StockAlerts\Job\ScanStockAlertsJob:
+    TITLE: 'Rechercher les alertes de stock à envoyer'
+  SilverShop\StockAlerts:
+    ConfirmTitle: 'Confirmez votre alerte de stock'
+    ConfirmGreeting: 'Confirmez votre alerte de retour en stock'
+    ConfirmInstruction: 'Veuillez confirmer que vous souhaitez recevoir un e-mail dès que <strong>{product}</strong> est de nouveau en stock.'
+    ConfirmButton: 'Confirmer mon alerte'
+    ConfirmFallback: "Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :"
+    ConfirmIgnore: "Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail ou vous"
+    Unsubscribe: 'désabonner'
+    BackTitle: 'De nouveau en stock'
+    BackHeading: "Bonne nouvelle — c'est de retour !"
+    BackBody: '<strong>{product}</strong> est de nouveau en stock. Faites vite, les stocks peuvent partir rapidement.'
+    BackButton: 'Voir le produit'
+    BackUnsub: "Vous recevez cet e-mail car vous aviez demandé à être prévenu. Aucun autre e-mail ne sera envoyé pour cette alerte."
+    PageConfirmed: 'Vous êtes sur la liste'
+    PageConfirmedMsg: 'Merci de votre confirmation. Nous vous préviendrons dès que <strong>{product}</strong> sera de nouveau en stock.'
+    PageBackToProduct: 'Retour au produit'
+    PageUnsubscribed: 'Vous êtes désabonné'
+    PageUnsubscribedMsg: 'Vous ne recevrez plus cette alerte de stock.'
+    PageInvalid: "Ce lien n'est pas valide"
+    PageInvalidMsg: 'Ce lien de confirmation ou de désabonnement a expiré ou est incorrect.'

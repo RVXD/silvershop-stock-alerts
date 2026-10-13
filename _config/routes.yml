@@ -1,0 +1,7 @@
+---
+Name: silvershop-stock-alerts-routes
+After: '#rootroutes'
+---
+SilverStripe\Control\Director:
+  rules:
+    'stock-alert': 'SilverShop\StockAlerts\Control\StockAlertController'

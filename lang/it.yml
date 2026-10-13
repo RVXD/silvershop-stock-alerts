@@ -1,0 +1,54 @@
+it:
+  SilverShop\StockAlerts\Model\StockAlert:
+    SINGULARNAME: 'Avviso di disponibilità'
+    PLURALNAME: 'Avvisi di disponibilità'
+    db_Email: 'Indirizzo email'
+    db_Type: 'Tipo'
+    db_Status: 'Stato'
+    db_Consent: 'Consenso'
+    db_ConsentAt: 'Consenso dato il'
+    db_Source: 'Origine'
+    db_SubscribedPrice: "Prezzo all'iscrizione"
+    db_ConfirmedAt: 'Confermato il'
+    db_NotifiedAt: 'Notificato il'
+    has_one_Member: 'Membro'
+    UnknownProduct: '(prodotto rimosso)'
+  SilverShop\StockAlerts\Admin\StockAlertsAdmin:
+    MENUTITLE: 'Avvisi di disponibilità'
+  SilverShop\StockAlerts\Control\StockAlertController:
+    Title: 'Avvisi di disponibilità'
+    CsrfError: 'La tua sessione è scaduta. Ricarica la pagina e riprova.'
+    NoProduct: 'Spiacenti, non abbiamo trovato quel prodotto.'
+    InvalidEmail: 'Inserisci un indirizzo email valido.'
+    CheckInbox: 'Ci siamo quasi! Conferma dalla tua casella di posta e ti avviseremo appena sarà di nuovo disponibile.'
+    Confirmed: 'Sei in lista: ti avviseremo appena tornerà disponibile.'
+    DoneTitle: 'Ti avviseremo'
+  SilverShop\StockAlerts\Service\StockAlertService:
+    ConfirmSubject: 'Conferma il tuo avviso di disponibilità per {product}'
+    BackInStockSubject: '{product} è di nuovo disponibile'
+  SilverShop\StockAlerts\Extension\StockAlertProductExtension:
+    NWaiting: '{count} cliente/i sono in attesa di un avviso di disponibilità per questo prodotto.'
+  SilverShop\StockAlerts\Job\NotifyBackInStockJob:
+    TITLE: 'Avvisa gli utenti in attesa per {class} #{id}'
+  SilverShop\StockAlerts\Job\ScanStockAlertsJob:
+    TITLE: 'Cerca avvisi di disponibilità da inviare'
+  SilverShop\StockAlerts:
+    ConfirmTitle: 'Conferma il tuo avviso di disponibilità'
+    ConfirmGreeting: 'Conferma il tuo avviso di disponibilità'
+    ConfirmInstruction: "Conferma di voler ricevere un'email non appena <strong>{product}</strong> tornerà disponibile."
+    ConfirmButton: 'Conferma il mio avviso'
+    ConfirmFallback: 'Se il pulsante non funziona, copia questo link nel tuo browser:'
+    ConfirmIgnore: "Se non hai richiesto tu questo avviso, puoi ignorare questa email oppure"
+    Unsubscribe: 'annullare l''iscrizione'
+    BackTitle: 'Di nuovo disponibile'
+    BackHeading: 'Buone notizie: è tornato!'
+    BackBody: '<strong>{product}</strong> è di nuovo disponibile. Affrettati, le scorte possono esaurirsi in fretta.'
+    BackButton: 'Vedi il prodotto'
+    BackUnsub: "Ricevi questa email perché avevi chiesto di essere avvisato. Non verranno inviate altre email per questo avviso."
+    PageConfirmed: 'Sei in lista'
+    PageConfirmedMsg: 'Grazie per la conferma. Ti avviseremo appena <strong>{product}</strong> tornerà disponibile.'
+    PageBackToProduct: 'Torna al prodotto'
+    PageUnsubscribed: 'Iscrizione annullata'
+    PageUnsubscribedMsg: 'Non riceverai più questo avviso di disponibilità.'
+    PageInvalid: 'Questo link non è valido'
+    PageInvalidMsg: 'Questo link di conferma o di annullamento è scaduto o non è corretto.'

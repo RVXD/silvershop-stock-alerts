@@ -1,0 +1,70 @@
+{
+    "name": "silvershop/stock-alerts",
+    "description": "Back-in-stock (and, from v2, price-drop) notifications for SilverShop: customers subscribe to an out-of-stock product or variation and get one tokenised, double-opt-in email the moment it is available again.",
+    "type": "silverstripe-vendormodule",
+    "keywords": [
+        "silverstripe",
+        "silvershop",
+        "ecommerce",
+        "stock",
+        "back-in-stock",
+        "notifications"
+    ],
+    "license": "BSD-3-Clause",
+    "authors": [
+        {
+            "name": "SilverShop Contributors",
+            "homepage": "https://github.com/silvershop/silvershop-stock-alerts/graphs/contributors"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "silverstripe/framework": "^6.0",
+        "silvershop/core": "^6",
+        "symbiote/silverstripe-queuedjobs": "^6.0"
+    },
+    "require-dev": {
+        "cambis/silverstan": "^2.1",
+        "silverstripe/recipe-testing": "^4",
+        "silverstripe/sqlite3": "^4",
+        "squizlabs/php_codesniffer": "^3.0"
+    },
+    "suggest": {
+        "silvershop/stock": "Required for back-in-stock alerts — the restock trigger watches its ProductWarehouseStock. The feature stays dormant (no notify UI, no trigger) until it is installed.",
+        "silvershop/store-profile": "Shared shop identity used as the sender name/address for the alert emails.",
+        "silverstripe/spamprotection": "Pluggable spam protection (reCAPTCHA/hCaptcha/...) auto-enabled on the subscribe form (a honeypot is the always-on fallback).",
+        "silvershop/newsletter": "Lets an optional marketing opt-in on the subscribe form write through the canonical NewsletterConsent gate.",
+        "silvershop/storefront": "Ships the PDP buy-box / sticky-bar notify UI the module lights up."
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "stan": "vendor/bin/phpstan analyse --configuration=phpstan.neon --memory-limit=-1",
+        "lint": "vendor/bin/phpcs",
+        "lint:fix": "vendor/bin/phpcbf"
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true,
+            "silverstripe/recipe-plugin": true,
+            "silverstripe/vendor-plugin": true,
+            "php-http/discovery": false
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.x-dev"
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "SilverShop\\StockAlerts\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "SilverShop\\StockAlerts\\Tests\\": "tests/php/"
+        }
+    },
+    "prefer-stable": true,
+    "minimum-stability": "dev"
+}
