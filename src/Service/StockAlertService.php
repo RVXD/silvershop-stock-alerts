@@ -5,15 +5,21 @@ declare(strict_types=1);
 namespace SilverShop\StockAlerts\Service;
 
 use SilverShop\Model\Buyable;
+use SilverShop\Model\Variation\Variation;
 use SilverShop\StockAlerts\Job\NotifyBackInStockJob;
+use SilverShop\StockAlerts\Job\NotifyPriceDropJob;
 use SilverShop\StockAlerts\Model\StockAlert;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\Email\Email;
+use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Control\Session;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Model\ArrayData;
 use SilverStripe\ORM\DataObject;
+use SilverStripe\ORM\FieldType\DBCurrency;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\Security\Member;
 use SilverStripe\SiteConfig\SiteConfig;
@@ -37,9 +43,31 @@ class StockAlertService
     use Injectable;
 
     /**
-     * Back-in-stock alerts on/off (price-drop is v2).
+     * Back-in-stock alerts on/off.
      */
     private static bool $back_in_stock_enabled = true;
+
+    /**
+     * Price-drop alerts on/off (v2). Works without silvershop/stock — it watches the buyable's own price.
+     */
+    private static bool $price_drop_enabled = true;
+
+    /**
+     * Minimum absolute drop (in the shop's base currency) below the subscribed-at price before a price-drop
+     * notification fires — a floor to avoid spamming on a €0.01 wobble. 0 disables the absolute floor.
+     */
+    private static float $price_drop_min_absolute = 0.0;
+
+    /**
+     * Minimum percentage drop below the subscribed-at price before a price-drop notification fires. 0 disables it.
+     */
+    private static float $price_drop_min_percent = 0.0;
+
+    /**
+     * Auto re-arm a fired one-shot alert when the buyable goes out-of-stock again, so the next restock notifies
+     * the same subscribers once more (instead of requiring them to re-subscribe).
+     */
+    private static bool $auto_rearm = true;
 
     /**
      * Require guests to confirm via a double-opt-in email before the alert is armed (GDPR-friendly).
@@ -227,11 +255,242 @@ class StockAlertService
     }
 
     /**
-     * Safety-net scan: for every buyable with Verified back-in-stock waiters, re-check availability and dispatch
-     * any the write-hook missed (bulk imports, direct SQL, seeded stock); also prune expired Pending rows. Returns
-     * a counts summary.
+     * Queue an instant price-drop dispatch for a buyable — only when a Verified price-drop waiter exists whose
+     * subscribed-at price now qualifies (so the queue stays clean on a price change nobody is watching for).
      *
-     * @return array{checked:int, notified:int, expired:int}
+     * @param Buyable|DataObject $buyable
+     */
+    public function enqueuePriceDrop($buyable): void
+    {
+        if (!(bool) static::config()->get('price_drop_enabled')) {
+            return;
+        }
+        if (!is_object($buyable) || !$buyable instanceof DataObject || !$buyable->exists()) {
+            return;
+        }
+        if (!$this->hasQualifyingPriceDropWaiter($buyable)) {
+            return;
+        }
+
+        NotifyPriceDropJob::enqueue($buyable);
+    }
+
+    /**
+     * Send the one-shot price-drop email to every Verified price-drop waiter whose subscribed-at price is now
+     * above the buyable's current selling price by the configured floor. When the buyable is a product its
+     * variations are swept too, so a base-price drop that cascades (PriceVariationsFromBase / price fallback)
+     * reaches the variation-level waiters as well. Each row is claimed before sending (one-shot, retry-safe).
+     *
+     * @param Buyable|DataObject $buyable
+     */
+    public function notifyPriceDrop($buyable): int
+    {
+        if (!(bool) static::config()->get('price_drop_enabled')) {
+            return 0;
+        }
+        if (!is_object($buyable) || !$buyable instanceof DataObject || !$buyable->exists()) {
+            return 0;
+        }
+
+        self::ensureRequest();
+
+        $sent = 0;
+        foreach ($this->priceDropSubjects($buyable) as $subject) {
+            $sent += $this->dispatchPriceDropFor($subject);
+        }
+
+        return $sent;
+    }
+
+    /**
+     * Re-arm the fired one-shot alerts on a buyable so they will notify again — used when a product goes
+     * out-of-stock again after a restock (an out→in→out cycle). Flips Notified back to Verified for the
+     * matching back-in-stock alerts (buyable-level and, for a variation, its product-level waiters). Returns
+     * the number re-armed. A no-op unless auto_rearm is on.
+     *
+     * @param Buyable|DataObject $buyable
+     */
+    public function rearm($buyable, string $type = StockAlert::TYPE_BACK_IN_STOCK): int
+    {
+        if (!(bool) static::config()->get('auto_rearm')) {
+            return 0;
+        }
+        if (!is_object($buyable) || !$buyable instanceof DataObject || !$buyable->exists()) {
+            return 0;
+        }
+
+        $count = 0;
+        foreach ($this->matchingAlerts($buyable, [StockAlert::STATUS_NOTIFIED], $type) as $alert) {
+            if (!$alert instanceof StockAlert) {
+                continue;
+            }
+            $alert->rearm();
+            $alert->write();
+            $count++;
+        }
+
+        return $count;
+    }
+
+    /**
+     * Claim + send the price-drop email for each qualifying Verified waiter on a single buyable. Shared by the
+     * per-buyable and per-variation sweep.
+     *
+     * @param mixed $buyable
+     */
+    protected function dispatchPriceDropFor($buyable): int
+    {
+        if (!$buyable instanceof DataObject || !$buyable->hasMethod('sellingPrice')) {
+            return 0;
+        }
+        $newPrice = (float) $buyable->sellingPrice();
+
+        $cap = max(1, (int) static::config()->get('max_per_run'));
+        $windowMins = (int) static::config()->get('renotify_window_mins');
+        $windowCutoff = $windowMins > 0
+            ? date('Y-m-d H:i:s', strtotime('-' . $windowMins . ' minutes'))
+            : null;
+
+        $sent = 0;
+        $candidates = StockAlert::get()->filter([
+            'BuyableClass' => $buyable->ClassName,
+            'BuyableID' => (int) $buyable->ID,
+            'Type' => StockAlert::TYPE_PRICE_DROP,
+            'Status' => StockAlert::STATUS_VERIFIED,
+        ])->limit($cap);
+
+        foreach ($candidates as $candidate) {
+            if (!$this->priceDropQualifies((float) $candidate->SubscribedPrice, $newPrice)) {
+                continue;
+            }
+            // Re-fetch to claim atomically: skip anything another run already took.
+            $alert = StockAlert::get()->byID((int) $candidate->ID);
+            if (!$alert || $alert->Status !== StockAlert::STATUS_VERIFIED) {
+                continue;
+            }
+            if ($windowCutoff && $alert->NotifiedAt && $alert->NotifiedAt > $windowCutoff) {
+                continue;
+            }
+
+            $alert->markNotified();
+            $alert->write();
+
+            if ($this->sendPriceDrop($alert)) {
+                $sent++;
+            }
+        }
+
+        return $sent;
+    }
+
+    /**
+     * Whether a drop from the subscribed-at price to the new price clears both configured floors.
+     */
+    public function priceDropQualifies(float $subscribedPrice, float $newPrice): bool
+    {
+        // The new price must actually be lower than the price watched at subscribe.
+        if (!($newPrice < $subscribedPrice)) {
+            return false;
+        }
+
+        $drop = $subscribedPrice - $newPrice;
+        $minAbsolute = (float) static::config()->get('price_drop_min_absolute');
+        if ($minAbsolute > 0 && $drop < $minAbsolute) {
+            return false;
+        }
+
+        $minPercent = (float) static::config()->get('price_drop_min_percent');
+        if ($minPercent > 0 && $subscribedPrice > 0 && ($drop / $subscribedPrice * 100) < $minPercent) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * The buyables to sweep for a price-drop dispatch: the buyable itself, plus (when it is a product with
+     * variations) each of its variations, since a base-price drop can cascade to variation selling prices.
+     *
+     * @param mixed $buyable
+     * @return list<DataObject>
+     */
+    protected function priceDropSubjects($buyable): array
+    {
+        $subjects = [$buyable];
+
+        $isVariation = class_exists(Variation::class) && $buyable instanceof Variation;
+        $dynamic = $this->asDynamic($buyable);
+        if (!$isVariation && $dynamic->hasMethod('Variations')) {
+            foreach ($dynamic->Variations() as $variation) {
+                if ($variation && $variation->exists()) {
+                    $subjects[] = $variation;
+                }
+            }
+        }
+
+        return $subjects;
+    }
+
+    /**
+     * Whether any Verified price-drop waiter on the buyable (or, for a product, its variations) now qualifies.
+     *
+     * @param mixed $buyable
+     */
+    protected function hasQualifyingPriceDropWaiter($buyable): bool
+    {
+        foreach ($this->priceDropSubjects($buyable) as $subject) {
+            if (!$subject instanceof DataObject || !$subject->hasMethod('sellingPrice')) {
+                continue;
+            }
+            $newPrice = (float) $subject->sellingPrice();
+            $waiters = StockAlert::get()->filter([
+                'BuyableClass' => $subject->ClassName,
+                'BuyableID' => (int) $subject->ID,
+                'Type' => StockAlert::TYPE_PRICE_DROP,
+                'Status' => StockAlert::STATUS_VERIFIED,
+            ]);
+            foreach ($waiters as $waiter) {
+                if ($this->priceDropQualifies((float) $waiter->SubscribedPrice, $newPrice)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Send the "price dropped" email. Returns false (without throwing) when sending fails.
+     */
+    public function sendPriceDrop(StockAlert $alert): bool
+    {
+        try {
+            Email::create()
+                ->setHTMLTemplate('SilverShop\\StockAlerts\\Email\\PriceDropEmail')
+                ->setPlainTemplate('SilverShop\\StockAlerts\\Email\\PriceDropEmailPlain')
+                ->setData($this->emailData($alert))
+                ->setTo($alert->Email)
+                ->setFrom($this->senderEmail(), $this->senderName())
+                ->setSubject(_t(
+                    self::class . '.PriceDropSubject',
+                    'The price dropped on {product}',
+                    ['product' => $alert->getBuyableTitle()]
+                ))
+                ->send();
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * Safety-net scan: for every buyable with Verified waiters, re-check and dispatch anything the write/publish
+     * hooks missed (bulk imports, direct SQL, seeded stock, scripted price changes); also prune expired Pending
+     * rows. Covers both back-in-stock (availability flip) and price-drop (current selling price vs the subscribed
+     * baseline). Returns a counts summary.
+     *
+     * @return array{checked:int, notified:int, priceDropNotified:int, expired:int}
      */
     public function scanAndNotify(): array
     {
@@ -240,29 +499,58 @@ class StockAlertService
         $seen = [];
         $checked = 0;
         $notified = 0;
-        $waiting = StockAlert::get()->filter([
-            'Type' => StockAlert::TYPE_BACK_IN_STOCK,
-            'Status' => StockAlert::STATUS_VERIFIED,
-        ]);
+        $priceDropNotified = 0;
 
-        foreach ($waiting as $alert) {
-            $key = $alert->BuyableClass . '|' . $alert->BuyableID;
-            if (isset($seen[$key])) {
-                continue;
-            }
-            $seen[$key] = true;
-            $checked++;
+        if ((bool) static::config()->get('back_in_stock_enabled')) {
+            $waiting = StockAlert::get()->filter([
+                'Type' => StockAlert::TYPE_BACK_IN_STOCK,
+                'Status' => StockAlert::STATUS_VERIFIED,
+            ]);
+            foreach ($waiting as $alert) {
+                $key = $alert->BuyableClass . '|' . $alert->BuyableID;
+                if (isset($seen[$key])) {
+                    continue;
+                }
+                $seen[$key] = true;
+                $checked++;
 
-            $buyable = $alert->getBuyable();
-            if (!$buyable || !$buyable->hasMethod('hasAvailableStock')) {
-                continue;
-            }
-            if ($buyable->hasAvailableStock()) {
-                $notified += $this->notifyBackInStock($buyable);
+                $buyable = $alert->getBuyable();
+                if (!$buyable || !$buyable->hasMethod('hasAvailableStock')) {
+                    continue;
+                }
+                if ($buyable->hasAvailableStock()) {
+                    $notified += $this->notifyBackInStock($buyable);
+                }
             }
         }
 
-        return ['checked' => $checked, 'notified' => $notified, 'expired' => $expired];
+        if ((bool) static::config()->get('price_drop_enabled')) {
+            $seenPrice = [];
+            $watching = StockAlert::get()->filter([
+                'Type' => StockAlert::TYPE_PRICE_DROP,
+                'Status' => StockAlert::STATUS_VERIFIED,
+            ]);
+            foreach ($watching as $alert) {
+                $key = $alert->BuyableClass . '|' . $alert->BuyableID;
+                if (isset($seenPrice[$key])) {
+                    continue;
+                }
+                $seenPrice[$key] = true;
+                $checked++;
+
+                $buyable = $alert->getBuyable();
+                if ($buyable) {
+                    $priceDropNotified += $this->notifyPriceDrop($buyable);
+                }
+            }
+        }
+
+        return [
+            'checked' => $checked,
+            'notified' => $notified,
+            'priceDropNotified' => $priceDropNotified,
+            'expired' => $expired,
+        ];
     }
 
     /**
@@ -301,11 +589,11 @@ class StockAlertService
     {
         $pairs = [[$buyable->ClassName, (int) $buyable->ID]];
 
-        // Launder to mixed: isVariation()/Product() are reached via hasMethod()/__call (Variation), invisible to
-        // static analysis on a concrete type.
-        $dynamic = $this->asDynamic($buyable);
-        if ($dynamic->hasMethod('isVariation') && $dynamic->isVariation() && $dynamic->hasMethod('Product')) {
-            $product = $dynamic->Product();
+        // A variation also matches its product-level waiters. Detect via instanceof (core Variation is always
+        // present) rather than silvershop/stock's isVariation() helper, so this resolves for the core-only
+        // price-drop path too.
+        if (class_exists(Variation::class) && $buyable instanceof Variation) {
+            $product = $buyable->Product();
             if ($product && $product->exists()) {
                 $pairs[] = [$product->ClassName, (int) $product->ID];
             }
@@ -374,6 +662,7 @@ class StockAlertService
         try {
             Email::create()
                 ->setHTMLTemplate('SilverShop\\StockAlerts\\Email\\ConfirmStockAlertEmail')
+                ->setPlainTemplate('SilverShop\\StockAlerts\\Email\\ConfirmStockAlertEmailPlain')
                 ->setData($this->emailData($alert))
                 ->setTo($alert->Email)
                 ->setFrom($this->senderEmail(), $this->senderName())
@@ -398,6 +687,7 @@ class StockAlertService
         try {
             Email::create()
                 ->setHTMLTemplate('SilverShop\\StockAlerts\\Email\\BackInStockEmail')
+                ->setPlainTemplate('SilverShop\\StockAlerts\\Email\\BackInStockEmailPlain')
                 ->setData($this->emailData($alert))
                 ->setTo($alert->Email)
                 ->setFrom($this->senderEmail(), $this->senderName())
@@ -420,6 +710,9 @@ class StockAlertService
     public function emailData(StockAlert $alert): ArrayData
     {
         $product = $alert->getProduct();
+        $buyable = $alert->getBuyable();
+        $currentPrice = ($buyable && $buyable->hasMethod('sellingPrice')) ? (float) $buyable->sellingPrice() : null;
+
         $data = ArrayData::create([
             'ShopName' => $this->senderName(),
             'Email' => $alert->Email,
@@ -428,6 +721,9 @@ class StockAlertService
             'BuyableLink' => $alert->BuyableLink(),
             'ConfirmLink' => $alert->ConfirmLink(),
             'UnsubscribeLink' => $alert->UnsubscribeLink(),
+            // Price-drop figures (null-safe; only the PriceDropEmail template reads them).
+            'SubscribedPrice' => $alert->dbObject('SubscribedPrice'),
+            'CurrentPrice' => $currentPrice !== null ? DBCurrency::create()->setValue($currentPrice) : null,
         ]);
         $this->extend('updateEmailData', $data, $alert);
 
@@ -505,6 +801,27 @@ class StockAlertService
         }
 
         return StockAlert::get()->filter('Token', $token)->first();
+    }
+
+    /**
+     * Ensure a current HTTPRequest is registered. Price-drop dispatch calls sellingPrice(), and some shops hook
+     * updateSellingPrice() with request-dependent code (e.g. silvershop/discounts' member-specific pricing calls
+     * Security::getCurrentUser()), which fatals from the CLI (the task or a queued job) where no request exists.
+     * Registering a minimal request there makes getCurrentUser() resolve to no member instead of crashing. In a
+     * web context a controller is already current, so this is a no-op.
+     */
+    public static function ensureRequest(): void
+    {
+        if (!Director::is_cli()) {
+            return;
+        }
+        try {
+            $request = new HTTPRequest('GET', '/');
+            $request->setSession(new Session([]));
+            Injector::inst()->registerService($request, HTTPRequest::class);
+        } catch (\Throwable) {
+            // Best-effort — if the request cannot be set up, the per-buyable dispatch still guards its own calls.
+        }
     }
 
     /**

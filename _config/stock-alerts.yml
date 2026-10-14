@@ -9,14 +9,36 @@ After:
 SilverShop\Page\Product:
   extensions:
     - SilverShop\StockAlerts\Extension\StockAlertProductExtension
+    # Price-drop detection on the product's own price (core-only; no silvershop/stock needed). A base-price
+    # drop can cascade to variation selling prices, which only the product hook observes.
+    - SilverShop\StockAlerts\Extension\ProductPriceAlertExtension
 
 SilverShop\Page\ProductController:
   extensions:
     - SilverShop\StockAlerts\Extension\StockAlertProductControllerExtension
 
+SilverShop\Model\Variation\Variation:
+  extensions:
+    # Price-drop detection on a variation's own price (publish-based; a draft price never mis-fires).
+    - SilverShop\StockAlerts\Extension\ProductPriceAlertExtension
+
+SilverShop\Page\AccountPageController:
+  extensions:
+    - SilverShop\StockAlerts\Extension\StockAlertAccountExtension
+  allowed_actions:
+    - alerts
+
 SilverShop\StockAlerts\Service\StockAlertService:
-  # Back-in-stock alerts on/off (price-drop is v2).
+  # Back-in-stock alerts on/off.
   back_in_stock_enabled: true
+  # Price-drop alerts on/off (v2). Works without silvershop/stock — it watches the buyable's own price.
+  price_drop_enabled: true
+  # Floors so a tiny wobble never notifies (0 = disabled). Absolute is in the shop's base currency.
+  price_drop_min_absolute: 0
+  price_drop_min_percent: 0
+  # Auto re-arm a fired one-shot alert when the buyable goes out of stock again (so the next restock notifies
+  # the same subscribers once more, instead of requiring them to re-subscribe).
+  auto_rearm: true
   # Guests must confirm via a double-opt-in email before the alert is armed (GDPR-friendly).
   double_opt_in: true
   # Logged-in members (identity established) are auto-confirmed instead of being emailed a confirm link.
@@ -51,8 +73,13 @@ Name: silvershop-stock-alerts-queuedjobs
 After:
   - '#queuedjobs'
 ---
-# The instant dispatch job is retried a few times with a growing delay for transient mail/DB errors.
+# The instant dispatch jobs are retried a few times with a growing delay for transient mail/DB errors.
 SilverShop\StockAlerts\Job\NotifyBackInStockJob:
+  retry_max_attempts: 3
+  retry_initial_delay: 60
+  retry_falloff_multiplier: 2
+
+SilverShop\StockAlerts\Job\NotifyPriceDropJob:
   retry_max_attempts: 3
   retry_initial_delay: 60
   retry_falloff_multiplier: 2

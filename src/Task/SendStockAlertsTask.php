@@ -36,6 +36,9 @@ class SendStockAlertsTask extends BuildTask
 
     protected function execute(InputInterface $input, PolyOutput $output): int
     {
+        // Make request-dependent sellingPrice() extensions (e.g. member pricing) safe to call from the CLI.
+        StockAlertService::ensureRequest();
+
         $service = StockAlertService::create();
 
         if ($input->getOption('schedule')) {
@@ -62,6 +65,25 @@ class SendStockAlertsTask extends BuildTask
                     : 'still out';
                 $output->writeln(sprintf('  %s — %s', $alert->getBuyableSummary(), $available));
             }
+
+            $watching = StockAlert::get()->filter([
+                'Type' => StockAlert::TYPE_PRICE_DROP,
+                'Status' => StockAlert::STATUS_VERIFIED,
+            ]);
+            $output->writeln($watching->count() . ' armed price-drop alert(s) watching:');
+            $seenPrice = [];
+            foreach ($watching as $alert) {
+                $key = $alert->BuyableClass . '|' . $alert->BuyableID;
+                if (isset($seenPrice[$key])) {
+                    continue;
+                }
+                $seenPrice[$key] = true;
+                $buyable = $alert->getBuyable();
+                $now = ($buyable && $buyable->hasMethod('sellingPrice'))
+                    ? number_format((float) $buyable->sellingPrice(), 2)
+                    : '?';
+                $output->writeln(sprintf('  %s — now %s (watched below %s)', $alert->getBuyableSummary(), $now, number_format((float) $alert->SubscribedPrice, 2)));
+            }
             $output->writeln('Pass --run to re-check and send.');
 
             return Command::SUCCESS;
@@ -69,9 +91,10 @@ class SendStockAlertsTask extends BuildTask
 
         $result = $service->scanAndNotify();
         $output->writeln(sprintf(
-            'Checked %d buyable(s); sent %d email(s); expired %d stale alert(s).',
+            'Checked %d buyable(s); sent %d back-in-stock + %d price-drop email(s); expired %d stale alert(s).',
             (int) $result['checked'],
             (int) $result['notified'],
+            (int) $result['priceDropNotified'],
             (int) $result['expired']
         ));
 

@@ -63,4 +63,42 @@ class RestockDetectionTest extends SapphireTest
         $after = QueuedJobDescriptor::get()->filter('Implementation', NotifyBackInStockJob::class)->count();
         $this->assertSame($before + 1, $after, 'A restock enqueues a NotifyBackInStockJob.');
     }
+
+    public function testOutOfStockAgainRearmsNotifiedAlert(): void
+    {
+        $warehouseClass = 'SilverShop\\Stock\\Model\\ProductWarehouse';
+        $stockClass = 'SilverShop\\Stock\\Model\\ProductWarehouseStock';
+
+        $product = Product::create();
+        $product->Title = 'Cycle me';
+        $product->write();
+
+        $warehouse = $warehouseClass::create();
+        $warehouse->Title = 'Test warehouse';
+        $warehouse->write();
+
+        // In stock to begin with.
+        $stock = $stockClass::create();
+        $stock->ProductID = $product->ID;
+        $stock->ProductClass = Product::class;
+        $stock->WarehouseID = $warehouse->ID;
+        $stock->Quantity = '5';
+        $stock->write();
+
+        // A subscriber who was already notified on the previous restock.
+        $alert = StockAlertService::create()->subscribe($product, 'cycle@example.com');
+        $alert->confirm();
+        $alert->markNotified();
+        $alert->write();
+
+        // Goes out of stock again (5 → 0): the fired alert is re-armed for the next restock.
+        $stock->Quantity = '0';
+        $stock->write();
+
+        $this->assertSame(
+            StockAlert::STATUS_VERIFIED,
+            StockAlert::get()->byID($alert->ID)->Status,
+            'Going out of stock again re-arms the notified alert.'
+        );
+    }
 }

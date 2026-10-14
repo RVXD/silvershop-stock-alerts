@@ -1,6 +1,6 @@
 {
     "name": "silvershop/stock-alerts",
-    "description": "Back-in-stock (and, from v2, price-drop) notifications for SilverShop: customers subscribe to an out-of-stock product or variation and get one tokenised, double-opt-in email the moment it is available again.",
+    "description": "Back-in-stock and price-drop notifications for SilverShop: customers subscribe to an out-of-stock product or variation (or watch its price) and get one tokenised, double-opt-in email the moment it is available again or the price falls.",
     "type": "silverstripe-vendormodule",
     "keywords": [
         "silverstripe",

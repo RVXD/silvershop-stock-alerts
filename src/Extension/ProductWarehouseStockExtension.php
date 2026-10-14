@@ -41,31 +41,40 @@ class ProductWarehouseStockExtension extends Extension
 
             // Old quantity (null for a brand-new row — which is never a "restock", so it won't fire below).
             $oldQuantity = isset($changed['Quantity']['before']) ? (int) $changed['Quantity']['before'] : null;
-
-            // If it was already unlimited (legacy -1 sentinel, or the explicit flag), it was already available.
             $wasUnlimited = !empty($changed['Unlimited']['before']) || ($oldQuantity !== null && $oldQuantity < 0);
-            if ($wasUnlimited) {
-                return;
-            }
-
             $nowUnlimited = (bool) $stock->Unlimited || (string) $stock->Quantity === '-1';
-            $wasOut = ($oldQuantity === 0);
-            $nowStocked = ((int) $stock->Quantity > 0) || $nowUnlimited;
-            if (!($wasOut && $nowStocked)) {
-                return;
-            }
+            $nowQuantity = (int) $stock->Quantity;
 
-            $buyable = $stock->getBuyable();
-            if (!$buyable) {
-                return;
-            }
+            // Restock: a row explicitly at 0 now has stock. A brand-new row (oldQuantity null) is never a restock.
+            $wasOut = ($oldQuantity === 0) && !$wasUnlimited;
+            $nowStocked = $nowQuantity > 0 || $nowUnlimited;
 
-            // Re-confirm the flip at the buyable level (multi-warehouse sum − cart reservations).
-            if ($buyable->hasMethod('hasAvailableStock') && !$buyable->hasAvailableStock()) {
-                return;
-            }
+            // Out again: a row that had stock (or was unlimited) is now explicitly at 0 — the auto re-arm trigger.
+            $wasStocked = $wasUnlimited || ($oldQuantity !== null && $oldQuantity > 0);
+            $nowOut = !$nowUnlimited && $nowQuantity === 0;
 
-            StockAlertService::create()->enqueueBackInStock($buyable);
+            if ($wasOut && $nowStocked) {
+                $buyable = $stock->getBuyable();
+                if (!$buyable) {
+                    return;
+                }
+                // Re-confirm the flip at the buyable level (multi-warehouse sum − cart reservations).
+                if ($buyable->hasMethod('hasAvailableStock') && !$buyable->hasAvailableStock()) {
+                    return;
+                }
+                StockAlertService::create()->enqueueBackInStock($buyable);
+            } elseif ($wasStocked && $nowOut) {
+                $buyable = $stock->getBuyable();
+                if (!$buyable) {
+                    return;
+                }
+                // Re-arm fired one-shot alerts only once the buyable is truly unavailable across all warehouses
+                // (another warehouse may still hold stock, so this write is not a real "out of stock" for it).
+                if ($buyable->hasMethod('hasAvailableStock') && $buyable->hasAvailableStock()) {
+                    return;
+                }
+                StockAlertService::create()->rearm($buyable);
+            }
         } catch (\Throwable) {
             // Detection is best-effort: a stock write must never fail because of the alerts module.
             // The recurring scan job is the backstop for anything missed here.

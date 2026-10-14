@@ -13,6 +13,14 @@ fr:
     db_NotifiedAt: 'Notifié le'
     has_one_Member: 'Membre'
     UnknownProduct: '(produit supprimé)'
+    TypeBackInStock: 'Alerte de réapprovisionnement'
+    TypePriceDrop: 'Alerte de baisse de prix'
+    StatusPending: 'En attente de confirmation'
+    StatusWaiting: 'En attente'
+    StatusWatching: 'Suivi'
+    StatusNotified: 'Notifié'
+    StatusExpired: 'Expiré'
+    StatusUnsubscribed: 'Désabonné'
   SilverShop\StockAlerts\Admin\StockAlertsAdmin:
     MENUTITLE: 'Alertes de stock'
   SilverShop\StockAlerts\Control\StockAlertController:
@@ -26,10 +34,13 @@ fr:
   SilverShop\StockAlerts\Service\StockAlertService:
     ConfirmSubject: 'Confirmez votre alerte de stock pour {product}'
     BackInStockSubject: '{product} est de nouveau en stock'
+    PriceDropSubject: 'Le prix de {product} a baissé'
   SilverShop\StockAlerts\Extension\StockAlertProductExtension:
     NWaiting: '{count} client(s) attendent une alerte de retour en stock pour ce produit.'
   SilverShop\StockAlerts\Job\NotifyBackInStockJob:
     TITLE: 'Notifier les personnes en attente pour {class} #{id}'
+  SilverShop\StockAlerts\Job\NotifyPriceDropJob:
+    TITLE: 'Notifier les abonnés à la baisse de prix pour {class} #{id}'
   SilverShop\StockAlerts\Job\ScanStockAlertsJob:
     TITLE: 'Rechercher les alertes de stock à envoyer'
   SilverShop\StockAlerts:
@@ -45,6 +56,15 @@ fr:
     BackBody: '<strong>{product}</strong> est de nouveau en stock. Faites vite, les stocks peuvent partir rapidement.'
     BackButton: 'Voir le produit'
     BackUnsub: "Vous recevez cet e-mail car vous aviez demandé à être prévenu. Aucun autre e-mail ne sera envoyé pour cette alerte."
+    DropTitle: 'Baisse de prix'
+    DropHeading: 'Bonne nouvelle — le prix a baissé !'
+    DropBody: 'Le prix de <strong>{product}</strong> a baissé depuis que vous le suivez.'
+    DropButton: 'Voir le produit'
+    DropUnsub: "Vous recevez cet e-mail car vous aviez demandé à être prévenu d'une baisse de prix. Aucun autre e-mail ne sera envoyé pour cette alerte."
+    AccountTitle: 'Alertes de stock &amp; de prix'
+    AccountDropBelow: 'sous {price}'
+    AccountRemove: 'Supprimer'
+    AccountEmpty: "Vous n'avez aucune alerte de stock ou de prix active."
     PageConfirmed: 'Vous êtes sur la liste'
     PageConfirmedMsg: 'Merci de votre confirmation. Nous vous préviendrons dès que <strong>{product}</strong> sera de nouveau en stock.'
     PageBackToProduct: 'Retour au produit'

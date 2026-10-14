@@ -91,7 +91,7 @@ class StockAlertController extends Controller
         $alert = StockAlertService::create()->subscribe($buyable, $email, [
             'Source' => (string) ($request->postVar('Source') ?: 'pdp'),
             'Member' => $member,
-            'Type' => StockAlert::TYPE_BACK_IN_STOCK,
+            'Type' => $this->resolveType($request),
         ]);
 
         if (!$alert) {
@@ -119,6 +119,20 @@ class StockAlertController extends Controller
         $alert = StockAlertService::create()->unsubscribeByToken((string) $request->param('Token'));
 
         return $this->renderState($alert ? 'unsubscribed' : 'invalid', $alert);
+    }
+
+    /**
+     * The alert type requested in the POST, constrained to the known types (defaults to back-in-stock). A
+     * price-drop subscribe posts Type=PriceDrop; the storefront control for it is pending a design pass, but the
+     * endpoint already accepts it (members' account UI and tests use it).
+     */
+    protected function resolveType(HTTPRequest $request): string
+    {
+        $type = (string) $request->postVar('Type');
+
+        return $type === StockAlert::TYPE_PRICE_DROP
+            ? StockAlert::TYPE_PRICE_DROP
+            : StockAlert::TYPE_BACK_IN_STOCK;
     }
 
     /**

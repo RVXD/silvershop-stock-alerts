@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SilverShop\StockAlerts\Model;
 
 use SilverShop\Model\Buyable;
+use SilverShop\Model\Variation\Variation;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\DataObject;
@@ -172,7 +173,9 @@ class StockAlert extends DataObject
         if (!$buyable) {
             return null;
         }
-        if ($buyable->hasMethod('isVariation') && $buyable->isVariation() && $buyable->hasMethod('Product')) {
+        // Detect a variation via instanceof (core Variation is always present) rather than silvershop/stock's
+        // isVariation() helper, so a price-drop alert on a variation resolves its product without the stock module.
+        if (class_exists(Variation::class) && $buyable instanceof Variation) {
             $product = $buyable->Product();
 
             return ($product && $product->exists()) ? $product : null;
@@ -250,6 +253,43 @@ class StockAlert extends DataObject
         return in_array($this->Status, [self::STATUS_PENDING, self::STATUS_VERIFIED], true);
     }
 
+    public function isPriceDrop(): bool
+    {
+        return $this->Type === self::TYPE_PRICE_DROP;
+    }
+
+    public function isBackInStock(): bool
+    {
+        return $this->Type === self::TYPE_BACK_IN_STOCK;
+    }
+
+    /**
+     * Translated human label for the alert kind — for the account "My alerts" list and the CMS grid.
+     */
+    public function getTypeNice(): string
+    {
+        return $this->isPriceDrop()
+            ? _t(self::class . '.TypePriceDrop', 'Price-drop alert')
+            : _t(self::class . '.TypeBackInStock', 'Back-in-stock alert');
+    }
+
+    /**
+     * Translated human label for the lifecycle state — for the account list and the CMS grid.
+     */
+    public function getStatusNice(): string
+    {
+        return match ($this->Status) {
+            self::STATUS_PENDING => _t(self::class . '.StatusPending', 'Awaiting confirmation'),
+            self::STATUS_VERIFIED => $this->isPriceDrop()
+                ? _t(self::class . '.StatusWatching', 'Watching')
+                : _t(self::class . '.StatusWaiting', 'Waiting'),
+            self::STATUS_NOTIFIED => _t(self::class . '.StatusNotified', 'Notified'),
+            self::STATUS_EXPIRED => _t(self::class . '.StatusExpired', 'Expired'),
+            self::STATUS_UNSUBSCRIBED => _t(self::class . '.StatusUnsubscribed', 'Unsubscribed'),
+            default => (string) $this->Status,
+        };
+    }
+
     /**
      * Confirm (double-opt-in): arm the alert and stamp the consent / confirm timestamps when first set.
      */
@@ -273,6 +313,16 @@ class StockAlert extends DataObject
     {
         $this->Status = self::STATUS_NOTIFIED;
         $this->NotifiedAt = DBDatetime::now()->getValue();
+    }
+
+    /**
+     * Re-arm a one-shot alert that already fired: flip it back to Verified and clear the sent stamp, so the next
+     * restock (or price drop) notifies once more. Used by the auto re-arm on an out-of-stock-again cycle.
+     */
+    public function rearm(): void
+    {
+        $this->Status = self::STATUS_VERIFIED;
+        $this->NotifiedAt = null;
     }
 
     public function markUnsubscribed(): void

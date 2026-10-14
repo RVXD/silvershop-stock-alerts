@@ -13,6 +13,14 @@ nl:
     db_NotifiedAt: 'Gemeld op'
     has_one_Member: 'Lid'
     UnknownProduct: '(verwijderd product)'
+    TypeBackInStock: 'Voorraadmelding'
+    TypePriceDrop: 'Prijsdalingsmelding'
+    StatusPending: 'Wacht op bevestiging'
+    StatusWaiting: 'Wachtend'
+    StatusWatching: 'In de gaten'
+    StatusNotified: 'Gemeld'
+    StatusExpired: 'Verlopen'
+    StatusUnsubscribed: 'Afgemeld'
   SilverShop\StockAlerts\Admin\StockAlertsAdmin:
     MENUTITLE: 'Voorraadmeldingen'
   SilverShop\StockAlerts\Control\StockAlertController:
@@ -26,10 +34,13 @@ nl:
   SilverShop\StockAlerts\Service\StockAlertService:
     ConfirmSubject: 'Bevestig je voorraadmelding voor {product}'
     BackInStockSubject: '{product} is weer op voorraad'
+    PriceDropSubject: 'De prijs van {product} is gedaald'
   SilverShop\StockAlerts\Extension\StockAlertProductExtension:
     NWaiting: '{count} klant(en) wachten op een voorraadmelding voor dit product.'
   SilverShop\StockAlerts\Job\NotifyBackInStockJob:
     TITLE: 'Wachtenden op voorraad melden voor {class} #{id}'
+  SilverShop\StockAlerts\Job\NotifyPriceDropJob:
+    TITLE: 'Wachtenden op prijsdaling melden voor {class} #{id}'
   SilverShop\StockAlerts\Job\ScanStockAlertsJob:
     TITLE: 'Scannen op te versturen voorraadmeldingen'
   SilverShop\StockAlerts:
@@ -45,6 +56,15 @@ nl:
     BackBody: '<strong>{product}</strong> is weer op voorraad. Wees er snel bij, voorraad kan snel gaan.'
     BackButton: 'Bekijk het product'
     BackUnsub: 'Je ontvangt dit omdat je op de hoogte wilde worden gehouden. Voor deze melding worden geen verdere e-mails verstuurd.'
+    DropTitle: 'Prijsdaling'
+    DropHeading: 'Goed nieuws — de prijs is gedaald!'
+    DropBody: 'De prijs van <strong>{product}</strong> is gedaald sinds je het in de gaten houdt.'
+    DropButton: 'Bekijk het product'
+    DropUnsub: 'Je ontvangt dit omdat je op de hoogte wilde worden gehouden van een prijsdaling. Voor deze melding worden geen verdere e-mails verstuurd.'
+    AccountTitle: 'Voorraad- &amp; prijsmeldingen'
+    AccountDropBelow: 'onder {price}'
+    AccountRemove: 'Verwijderen'
+    AccountEmpty: 'Je hebt geen actieve voorraad- of prijsmeldingen.'
     PageConfirmed: 'Je staat op de lijst'
     PageConfirmedMsg: 'Bedankt voor je bevestiging. We mailen je zodra <strong>{product}</strong> weer op voorraad is.'
     PageBackToProduct: 'Terug naar het product'

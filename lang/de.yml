@@ -13,6 +13,14 @@ de:
     db_NotifiedAt: 'Benachrichtigt am'
     has_one_Member: 'Mitglied'
     UnknownProduct: '(entferntes Produkt)'
+    TypeBackInStock: 'Verfügbarkeitsbenachrichtigung'
+    TypePriceDrop: 'Preissenkungs-Benachrichtigung'
+    StatusPending: 'Warten auf Bestätigung'
+    StatusWaiting: 'Wartend'
+    StatusWatching: 'Beobachtet'
+    StatusNotified: 'Benachrichtigt'
+    StatusExpired: 'Abgelaufen'
+    StatusUnsubscribed: 'Abgemeldet'
   SilverShop\StockAlerts\Admin\StockAlertsAdmin:
     MENUTITLE: 'Verfügbarkeit'
   SilverShop\StockAlerts\Control\StockAlertController:
@@ -26,10 +34,13 @@ de:
   SilverShop\StockAlerts\Service\StockAlertService:
     ConfirmSubject: 'Bestätige deine Verfügbarkeitsbenachrichtigung für {product}'
     BackInStockSubject: '{product} ist wieder verfügbar'
+    PriceDropSubject: 'Der Preis für {product} ist gesunken'
   SilverShop\StockAlerts\Extension\StockAlertProductExtension:
     NWaiting: '{count} Kund(en) warten auf eine Verfügbarkeitsbenachrichtigung für dieses Produkt.'
   SilverShop\StockAlerts\Job\NotifyBackInStockJob:
     TITLE: 'Wartende über Verfügbarkeit benachrichtigen für {class} #{id}'
+  SilverShop\StockAlerts\Job\NotifyPriceDropJob:
+    TITLE: 'Preissenkungs-Wartende benachrichtigen für {class} #{id}'
   SilverShop\StockAlerts\Job\ScanStockAlertsJob:
     TITLE: 'Nach zu versendenden Verfügbarkeitsbenachrichtigungen suchen'
   SilverShop\StockAlerts:
@@ -45,6 +56,15 @@ de:
     BackBody: '<strong>{product}</strong> ist wieder verfügbar. Sei schnell, der Vorrat kann rasch vergriffen sein.'
     BackButton: 'Produkt ansehen'
     BackUnsub: 'Du erhältst diese E-Mail, weil du benachrichtigt werden wolltest. Für diese Benachrichtigung werden keine weiteren E-Mails versendet.'
+    DropTitle: 'Preissenkung'
+    DropHeading: 'Gute Nachrichten — der Preis ist gesunken!'
+    DropBody: 'Der Preis für <strong>{product}</strong> ist gesunken, seit du es beobachtest.'
+    DropButton: 'Produkt ansehen'
+    DropUnsub: 'Du erhältst diese E-Mail, weil du über eine Preissenkung benachrichtigt werden wolltest. Für diese Benachrichtigung werden keine weiteren E-Mails versendet.'
+    AccountTitle: 'Verfügbarkeits- &amp; Preis-Benachrichtigungen'
+    AccountDropBelow: 'unter {price}'
+    AccountRemove: 'Entfernen'
+    AccountEmpty: 'Du hast keine aktiven Verfügbarkeits- oder Preis-Benachrichtigungen.'
     PageConfirmed: 'Du stehst auf der Liste'
     PageConfirmedMsg: 'Danke für deine Bestätigung. Wir benachrichtigen dich, sobald <strong>{product}</strong> wieder verfügbar ist.'
     PageBackToProduct: 'Zurück zum Produkt'
