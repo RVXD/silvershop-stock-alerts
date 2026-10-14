@@ -6,6 +6,7 @@ namespace SilverShop\StockAlerts\Service;
 
 use SilverShop\Model\Buyable;
 use SilverShop\Model\Variation\Variation;
+use SilverShop\ORM\FieldType\ShopCurrency;
 use SilverShop\StockAlerts\Job\NotifyBackInStockJob;
 use SilverShop\StockAlerts\Job\NotifyPriceDropJob;
 use SilverShop\StockAlerts\Model\StockAlert;
@@ -19,7 +20,6 @@ use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Model\ArrayData;
 use SilverStripe\ORM\DataObject;
-use SilverStripe\ORM\FieldType\DBCurrency;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\Security\Member;
 use SilverStripe\SiteConfig\SiteConfig;
@@ -660,17 +660,25 @@ class StockAlertService
     public function sendConfirmationEmail(StockAlert $alert): bool
     {
         try {
+            $subject = $alert->isPriceDrop()
+                ? _t(
+                    self::class . '.ConfirmSubjectPriceDrop',
+                    'Confirm your price-drop alert for {product}',
+                    ['product' => $alert->getBuyableTitle()]
+                )
+                : _t(
+                    self::class . '.ConfirmSubject',
+                    'Confirm your back-in-stock alert for {product}',
+                    ['product' => $alert->getBuyableTitle()]
+                );
+
             Email::create()
                 ->setHTMLTemplate('SilverShop\\StockAlerts\\Email\\ConfirmStockAlertEmail')
                 ->setPlainTemplate('SilverShop\\StockAlerts\\Email\\ConfirmStockAlertEmailPlain')
                 ->setData($this->emailData($alert))
                 ->setTo($alert->Email)
                 ->setFrom($this->senderEmail(), $this->senderName())
-                ->setSubject(_t(
-                    self::class . '.ConfirmSubject',
-                    'Confirm your back-in-stock alert for {product}',
-                    ['product' => $alert->getBuyableTitle()]
-                ))
+                ->setSubject($subject)
                 ->send();
 
             return true;
@@ -716,14 +724,17 @@ class StockAlertService
         $data = ArrayData::create([
             'ShopName' => $this->senderName(),
             'Email' => $alert->Email,
+            'Type' => $alert->Type,
+            'IsPriceDrop' => $alert->isPriceDrop(),
             'BuyableTitle' => $alert->getBuyableTitle(),
             'ProductTitle' => $product ? (string) $product->getTitle() : $alert->getBuyableTitle(),
             'BuyableLink' => $alert->BuyableLink(),
             'ConfirmLink' => $alert->ConfirmLink(),
             'UnsubscribeLink' => $alert->UnsubscribeLink(),
-            // Price-drop figures (null-safe; only the PriceDropEmail template reads them).
+            // Price-drop figures (null-safe; only the PriceDropEmail template reads them). ShopCurrency so Nice()
+            // renders the shop's currency symbol (plain DBCurrency defaults to $).
             'SubscribedPrice' => $alert->dbObject('SubscribedPrice'),
-            'CurrentPrice' => $currentPrice !== null ? DBCurrency::create()->setValue($currentPrice) : null,
+            'CurrentPrice' => $currentPrice !== null ? ShopCurrency::create()->setValue($currentPrice) : null,
         ]);
         $this->extend('updateEmailData', $data, $alert);
 

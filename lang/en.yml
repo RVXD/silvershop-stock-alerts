@@ -31,8 +31,13 @@ en:
     CheckInbox: "Almost there! Check your inbox to confirm, and we'll email you the moment it's back."
     Confirmed: "You're on the list — we'll email you the moment it's back in stock."
     DoneTitle: "We'll let you know"
+    CheckInboxPriceDrop: "Almost there! Check your inbox to confirm, and we'll email you if the price drops."
+    ConfirmedPriceDrop: "You're watching this price — we'll email you if it drops."
+    DoneTitlePriceDrop: "You're watching this price"
+    Throttled: "You've made a lot of requests — please wait a little while before trying again."
   SilverShop\StockAlerts\Service\StockAlertService:
     ConfirmSubject: 'Confirm your back-in-stock alert for {product}'
+    ConfirmSubjectPriceDrop: 'Confirm your price-drop alert for {product}'
     BackInStockSubject: '{product} is back in stock'
     PriceDropSubject: 'The price dropped on {product}'
   SilverShop\StockAlerts\Extension\StockAlertProductExtension:
@@ -46,10 +51,12 @@ en:
   SilverShop\StockAlerts:
     ConfirmTitle: 'Confirm your stock alert'
     ConfirmGreeting: 'Confirm your back-in-stock alert'
-    ConfirmInstruction: "Please confirm you'd like one email when <strong>{product}</strong> is back in stock."
+    ConfirmGreetingPriceDrop: 'Confirm your price-drop alert'
+    ConfirmInstruction: "Someone (maybe you) asked us to watch <strong>{product}</strong> for you. Confirm below and we'll send one email the moment it's back in stock — nothing else."
+    ConfirmInstructionPriceDrop: "Someone (maybe you) asked us to watch the price of <strong>{product}</strong>. Confirm below and we'll send one email if the price drops — nothing else."
     ConfirmButton: 'Confirm my alert'
     ConfirmFallback: "If the button doesn't work, copy this link into your browser:"
-    ConfirmIgnore: "If you didn't request this, you can safely ignore this email, or"
+    ConfirmIgnore: "If this wasn't you, just ignore this email — nothing will be sent — or you can"
     Unsubscribe: 'unsubscribe'
     BackTitle: 'Back in stock'
     BackHeading: "Good news — it's back!"
@@ -67,6 +74,7 @@ en:
     AccountEmpty: 'You have no active stock or price alerts.'
     PageConfirmed: "You're on the list"
     PageConfirmedMsg: "Thanks for confirming. We'll email you the moment <strong>{product}</strong> is back in stock."
+    PageConfirmedMsgPriceDrop: "Thanks for confirming. We'll email you if the price of <strong>{product}</strong> drops."
     PageBackToProduct: 'Back to the product'
     PageUnsubscribed: "You've been unsubscribed"
     PageUnsubscribedMsg: "You won't receive this stock alert anymore."

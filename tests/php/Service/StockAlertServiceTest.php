@@ -52,6 +52,38 @@ class StockAlertServiceTest extends SapphireTest
         $this->assertSame((int) $member->ID, (int) $alert->MemberID);
     }
 
+    public function testPriceDropGuestSubscribeCapturesBaselineAndType(): void
+    {
+        Config::modify()->set(StockAlertService::class, 'double_opt_in', true);
+
+        $alert = StockAlertService::create()->subscribe($this->buyable(), 'watcher@example.com', [
+            'Type' => StockAlert::TYPE_PRICE_DROP,
+        ]);
+
+        $this->assertNotNull($alert);
+        $this->assertSame(StockAlert::TYPE_PRICE_DROP, $alert->Type);
+        $this->assertSame(StockAlert::STATUS_PENDING, $alert->Status, 'A guest price-drop watch is double-opt-in.');
+        $this->assertEqualsWithDelta(12.50, (float) $alert->SubscribedPrice, 0.001, 'The subscribe-time price is the drop baseline.');
+    }
+
+    public function testPriceDropMemberSubscribeIsAutoConfirmed(): void
+    {
+        Config::modify()->set(StockAlertService::class, 'member_auto_confirm', true);
+
+        $member = Member::create();
+        $member->Email = 'pdmember@example.com';
+        $member->write();
+
+        $alert = StockAlertService::create()->subscribe($this->buyable(), 'pdmember@example.com', [
+            'Member' => $member,
+            'Type' => StockAlert::TYPE_PRICE_DROP,
+        ]);
+
+        $this->assertNotNull($alert);
+        $this->assertSame(StockAlert::STATUS_VERIFIED, $alert->Status, 'A member price-drop watch is auto-confirmed.');
+        $this->assertSame(StockAlert::TYPE_PRICE_DROP, $alert->Type);
+    }
+
     public function testInvalidEmailReturnsNull(): void
     {
         $this->assertNull(StockAlertService::create()->subscribe($this->buyable(), 'not-an-email'));

@@ -15,7 +15,11 @@
     <div class="wrap">
         <% if $IsConfirmed %>
             <h1><%t SilverShop\StockAlerts.PageConfirmed "You're on the list" %></h1>
-            <p><%t SilverShop\StockAlerts.PageConfirmedMsg "Thanks for confirming. We'll email you the moment <strong>{product}</strong> is back in stock." product=$ProductTitle.XML %></p>
+            <% if $IsPriceDrop %>
+                <p><%t SilverShop\StockAlerts.PageConfirmedMsgPriceDrop "Thanks for confirming. We'll email you if the price of <strong>{product}</strong> drops." product=$ProductTitle.XML %></p>
+            <% else %>
+                <p><%t SilverShop\StockAlerts.PageConfirmedMsg "Thanks for confirming. We'll email you the moment <strong>{product}</strong> is back in stock." product=$ProductTitle.XML %></p>
+            <% end_if %>
             <% if $ProductLink %><a class="btn" href="$ProductLink"><%t SilverShop\StockAlerts.PageBackToProduct "Back to the product" %></a><% end_if %>
         <% else_if $IsUnsubscribed %>
             <h1><%t SilverShop\StockAlerts.PageUnsubscribed "You've been unsubscribed" %></h1>

@@ -8,10 +8,12 @@ use SilverShop\Model\Buyable;
 use SilverShop\Model\OrderItem;
 use SilverShop\StockAlerts\Control\StockAlertController;
 use SilverShop\StockAlerts\Model\StockAlert;
+use SilverShop\StockAlerts\Spam\StockAlertSpamProtector;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Control\HTTPResponse_Exception;
 use SilverStripe\Control\Session;
+use SilverStripe\Core\Config\Config;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Dev\TestOnly;
 use SilverStripe\ORM\DataObject;
@@ -75,6 +77,42 @@ class StockAlertControllerTest extends SapphireTest
         $this->assertTrue($json['ok']);
         $this->assertSame('pending', $json['state']);
         $this->assertSame(0, StockAlert::get()->count(), 'A tripped honeypot creates no alert.');
+    }
+
+    public function testTypeAwareMessages(): void
+    {
+        // Via the honeypot path (no DB write, no product resolution needed): the JSON title + message differ by Type.
+        $priceDrop = json_decode((string) $this->postSubscribe([
+            'ProductID' => 1,
+            'Type' => StockAlert::TYPE_PRICE_DROP,
+            'email' => 'x@example.com',
+            'website' => 'i-am-a-bot',
+        ])->getBody(), true);
+        $backInStock = json_decode((string) $this->postSubscribe([
+            'ProductID' => 1,
+            'Type' => StockAlert::TYPE_BACK_IN_STOCK,
+            'email' => 'x@example.com',
+            'website' => 'i-am-a-bot',
+        ])->getBody(), true);
+
+        $this->assertSame('PriceDrop', $priceDrop['type']);
+        $this->assertSame('BackInStock', $backInStock['type']);
+        $this->assertNotSame($priceDrop['title'], $backInStock['title'], 'The done title is Type-aware.');
+        $this->assertNotSame($priceDrop['message'], $backInStock['message'], 'The pending message is Type-aware.');
+        $this->assertStringContainsStringIgnoringCase('watching', $priceDrop['title']);
+    }
+
+    public function testPluggableSpamProtectorBlocksWithoutHoneypot(): void
+    {
+        // A shop-supplied protector (no honeypot field filled) still drops the submission as a fake "pending".
+        Config::modify()->set(StockAlertController::class, 'spam_protector', AlwaysSpamProtector::class);
+
+        $response = $this->postSubscribe(['ProductID' => 1, 'email' => 'real@human.com']);
+        $json = json_decode((string) $response->getBody(), true);
+
+        $this->assertTrue($json['ok']);
+        $this->assertSame('pending', $json['state']);
+        $this->assertSame(0, StockAlert::get()->count(), 'A custom spam protector that flags the request creates no alert.');
     }
 
     public function testConfirmAndUnsubscribeByToken(): void
@@ -144,5 +182,17 @@ class StockAlertTestBuyable extends DataObject implements Buyable, TestOnly
     public function sellingPrice(): float
     {
         return 12.50;
+    }
+}
+
+/**
+ * A shop-supplied spam protector stand-in that flags everything as spam, to prove the `spam_protector` config seam
+ * is honoured (the shop can swap in its own protection without the site-wide SpamProtector).
+ */
+class AlwaysSpamProtector implements StockAlertSpamProtector, TestOnly
+{
+    public function isSpam(HTTPRequest $request): bool
+    {
+        return true;
     }
 }

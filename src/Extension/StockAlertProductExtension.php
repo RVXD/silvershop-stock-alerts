@@ -48,6 +48,27 @@ class StockAlertProductExtension extends Extension
         }
     }
 
+    /**
+     * Template gate for the PDP "watch price" control: price-drop alerts are enabled and this product carries a
+     * sellable price to watch. The control itself renders only in the purchasable branch of the buy box (the
+     * template also checks $canPurchase), so a sold-out PDP keeps the back-in-stock bell and never the price watch.
+     * Core-only — unlike the back-in-stock gate it does not require silvershop/stock (price-drop watches the price).
+     */
+    public function getPriceDropAlertsEnabled(): bool
+    {
+        if (!(bool) StockAlertService::config()->get('price_drop_enabled')) {
+            return false;
+        }
+
+        try {
+            $owner = $this->getOwner();
+
+            return $owner->hasMethod('sellingPrice') && (float) $owner->sellingPrice() > 0;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     public function updateCMSFields(FieldList $fields): void
     {
         try {

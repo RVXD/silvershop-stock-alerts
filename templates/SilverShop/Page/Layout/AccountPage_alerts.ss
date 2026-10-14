@@ -10,6 +10,7 @@
                 <li class="silvershop-stock-alert-row">
                     <% if $BuyableLink %><a href="$BuyableLink">$BuyableSummary.XML</a><% else %>$BuyableSummary.XML<% end_if %>
                     &mdash; $TypeNice (<span>$StatusNice</span><% if $isPriceDrop && $SubscribedPrice %>, <%t SilverShop\StockAlerts.AccountDropBelow "below {price}" price=$SubscribedPrice.Nice %><% end_if %>)
+                    <span class="silvershop-stock-alert-row__email">$DisplayEmail</span>
                     <a href="$UnsubscribeLink"><%t SilverShop\StockAlerts.AccountRemove "Remove" %></a>
                 </li>
             <% end_loop %>

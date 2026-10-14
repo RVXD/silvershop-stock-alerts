@@ -55,6 +55,28 @@ SilverShop\StockAlerts\Service\StockAlertService:
   # Sender address for the alert emails (falls back to store-profile / SiteConfig / admin email when empty).
   from_email: ''
 
+SilverShop\StockAlerts\Model\StockAlert:
+  # Mask the subscriber's address (m•••@example.com) on the persistent member "My alerts" panel. Off shows the
+  # full address. The real address is always used internally for sending and dedupe.
+  mask_displayed_email: true
+
+SilverShop\StockAlerts\Control\StockAlertController:
+  # Abuse prevention on the public subscribe endpoint (both alert types). A per-IP AND per-email cache-backed
+  # throttle bounds how many confirmation emails the endpoint can be scripted to send (to one victim or many).
+  # 0 for either disables the throttle.
+  max_subscribes_per_window: 5
+  subscribe_window_mins: 60
+  # Pluggable spam protection for the subscribe forms — a class implementing
+  # SilverShop\StockAlerts\Spam\StockAlertSpamProtector, resolved via Injector. The zero-dep default is the
+  # built-in honeypot (+ the always-on CSRF token). A shop swaps in its own (e.g. one wrapping
+  # silverstripe/spamprotection or xddesigners/silverstripe-honeypotfield) WITHOUT touching the site-wide
+  # SpamProtector; extra form fields can also be injected via the updateStockAlertFormFields extension hook.
+  spam_protector: 'SilverShop\StockAlerts\Spam\HoneypotSpamProtector'
+
+SilverShop\StockAlerts\Spam\HoneypotSpamProtector:
+  # The hidden field real users never fill (matches the form's honeypot input name). A non-empty value = a bot.
+  honeypot_field: 'website'
+
 ---
 Name: silvershop-stock-alerts-stock
 Only:

@@ -30,16 +30,24 @@
         <tr>
             <td class="sa-email__cell">
                 <span class="sa-email__brand">$ShopName.XML</span>
-                <h1 class="sa-email__title"><%t SilverShop\StockAlerts.ConfirmGreeting "Confirm your back-in-stock alert" %></h1>
+                <% if $IsPriceDrop %>
+                    <h1 class="sa-email__title"><%t SilverShop\StockAlerts.ConfirmGreetingPriceDrop "Confirm your price-drop alert" %></h1>
+                <% else %>
+                    <h1 class="sa-email__title"><%t SilverShop\StockAlerts.ConfirmGreeting "Confirm your back-in-stock alert" %></h1>
+                <% end_if %>
                 <div class="sa-email__body">
-                    <p><%t SilverShop\StockAlerts.ConfirmInstruction "Please confirm you'd like one email when <strong>{product}</strong> is back in stock." product=$BuyableTitle.XML %></p>
+                    <% if $IsPriceDrop %>
+                        <p><%t SilverShop\StockAlerts.ConfirmInstructionPriceDrop "Someone (maybe you) asked us to watch the price of <strong>{product}</strong>. Confirm below and we'll send one email if the price drops — nothing else." product=$BuyableTitle.XML %></p>
+                    <% else %>
+                        <p><%t SilverShop\StockAlerts.ConfirmInstruction "Someone (maybe you) asked us to watch <strong>{product}</strong> for you. Confirm below and we'll send one email the moment it's back in stock — nothing else." product=$BuyableTitle.XML %></p>
+                    <% end_if %>
                     <p style="margin:22px 0;"><a class="sa-email__btn" href="$ConfirmLink"><%t SilverShop\StockAlerts.ConfirmButton "Confirm my alert" %></a></p>
                     <p class="sa-email__muted">
                         <%t SilverShop\StockAlerts.ConfirmFallback "If the button doesn't work, copy this link into your browser:" %><br>
                         <a href="$ConfirmLink">$ConfirmLink</a>
                     </p>
                     <p class="sa-email__muted">
-                        <%t SilverShop\StockAlerts.ConfirmIgnore "If you didn't request this, you can safely ignore this email, or" %>
+                        <%t SilverShop\StockAlerts.ConfirmIgnore "If this wasn't you, just ignore this email — nothing will be sent — or you can" %>
                         <a href="$UnsubscribeLink"><%t SilverShop\StockAlerts.Unsubscribe "unsubscribe" %></a>.
                     </p>
                 </div>

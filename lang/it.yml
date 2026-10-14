@@ -31,8 +31,13 @@ it:
     CheckInbox: 'Ci siamo quasi! Conferma dalla tua casella di posta e ti avviseremo appena sarà di nuovo disponibile.'
     Confirmed: 'Sei in lista: ti avviseremo appena tornerà disponibile.'
     DoneTitle: 'Ti avviseremo'
+    CheckInboxPriceDrop: 'Ci siamo quasi! Conferma dalla tua casella di posta e ti avviseremo se il prezzo cala.'
+    ConfirmedPriceDrop: 'Stai monitorando questo prezzo: ti avviseremo se cala.'
+    DoneTitlePriceDrop: 'Stai monitorando questo prezzo'
+    Throttled: 'Hai effettuato molte richieste: attendi un momento prima di riprovare.'
   SilverShop\StockAlerts\Service\StockAlertService:
     ConfirmSubject: 'Conferma il tuo avviso di disponibilità per {product}'
+    ConfirmSubjectPriceDrop: 'Conferma il tuo avviso di calo di prezzo per {product}'
     BackInStockSubject: '{product} è di nuovo disponibile'
     PriceDropSubject: 'Il prezzo di {product} è calato'
   SilverShop\StockAlerts\Extension\StockAlertProductExtension:
@@ -46,10 +51,12 @@ it:
   SilverShop\StockAlerts:
     ConfirmTitle: 'Conferma il tuo avviso di disponibilità'
     ConfirmGreeting: 'Conferma il tuo avviso di disponibilità'
-    ConfirmInstruction: "Conferma di voler ricevere un'email non appena <strong>{product}</strong> tornerà disponibile."
+    ConfirmGreetingPriceDrop: 'Conferma il tuo avviso di calo di prezzo'
+    ConfirmInstruction: "Qualcuno (forse tu) ci ha chiesto di monitorare <strong>{product}</strong> per te. Conferma qui sotto e invieremo una sola email appena tornerà disponibile — nient'altro."
+    ConfirmInstructionPriceDrop: "Qualcuno (forse tu) ci ha chiesto di monitorare il prezzo di <strong>{product}</strong>. Conferma qui sotto e invieremo una sola email se il prezzo cala — nient'altro."
     ConfirmButton: 'Conferma il mio avviso'
     ConfirmFallback: 'Se il pulsante non funziona, copia questo link nel tuo browser:'
-    ConfirmIgnore: "Se non hai richiesto tu questo avviso, puoi ignorare questa email oppure"
+    ConfirmIgnore: "Non sei stato tu? Ignora pure questa email — non verrà inviato nulla — oppure puoi"
     Unsubscribe: 'annullare l''iscrizione'
     BackTitle: 'Di nuovo disponibile'
     BackHeading: 'Buone notizie: è tornato!'
@@ -67,6 +74,7 @@ it:
     AccountEmpty: 'Non hai avvisi di stock o prezzo attivi.'
     PageConfirmed: 'Sei in lista'
     PageConfirmedMsg: 'Grazie per la conferma. Ti avviseremo appena <strong>{product}</strong> tornerà disponibile.'
+    PageConfirmedMsgPriceDrop: 'Grazie per la conferma. Ti avviseremo se il prezzo di <strong>{product}</strong> cala.'
     PageBackToProduct: 'Torna al prodotto'
     PageUnsubscribed: 'Iscrizione annullata'
     PageUnsubscribedMsg: 'Non riceverai più questo avviso di disponibilità.'

@@ -7,6 +7,7 @@ namespace SilverShop\StockAlerts\Tests\Model;
 use SilverShop\Model\Buyable;
 use SilverShop\Model\OrderItem;
 use SilverShop\StockAlerts\Model\StockAlert;
+use SilverStripe\Core\Config\Config;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Dev\TestOnly;
 use SilverStripe\ORM\DataObject;
@@ -93,6 +94,29 @@ class StockAlertTest extends SapphireTest
 
         $this->assertStringContainsString('stock-alert/confirm/' . $alert->Token, $alert->ConfirmLink());
         $this->assertStringContainsString('stock-alert/unsubscribe/' . $alert->Token, $alert->UnsubscribeLink());
+    }
+
+    public function testMaskEmailHelper(): void
+    {
+        $this->assertSame('m•••@example.com', StockAlert::maskEmail('mila.devries@example.com'));
+        $this->assertSame('b•••@shop.test', StockAlert::maskEmail('bob@shop.test'));
+        $this->assertSame('', StockAlert::maskEmail(''));
+        $this->assertSame('•••', StockAlert::maskEmail('@no-local'), 'A missing local part is fully masked.');
+    }
+
+    public function testDisplayEmailRespectsMaskConfig(): void
+    {
+        $alert = StockAlert::create();
+        $alert->Email = 'Mila.Devries@Example.com';
+        $alert->write(); // onBeforeWrite lowercases → mila.devries@example.com
+
+        Config::modify()->set(StockAlert::class, 'mask_displayed_email', true);
+        $this->assertSame('m•••@example.com', $alert->getMaskedEmail());
+        $this->assertSame('m•••@example.com', $alert->getDisplayEmail(), 'Masked on the persistent panel by default.');
+
+        Config::modify()->set(StockAlert::class, 'mask_displayed_email', false);
+        $this->assertSame('mila.devries@example.com', $alert->getDisplayEmail(), 'Full address when masking is off.');
+        $this->assertSame('m•••@example.com', $alert->getMaskedEmail(), 'getMaskedEmail is always masked.');
     }
 
     private function makeBuyable(string $title): StockAlertTestBuyable

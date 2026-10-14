@@ -6,6 +6,7 @@ namespace SilverShop\StockAlerts\Model;
 
 use SilverShop\Model\Buyable;
 use SilverShop\Model\Variation\Variation;
+use SilverShop\ORM\FieldType\ShopCurrency;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\DataObject;
@@ -64,6 +65,13 @@ class StockAlert extends DataObject
 
     private static string $plural_name = 'Stock alerts';
 
+    /**
+     * Mask the subscriber's address (m•••@example.com) wherever it is shown back on a persistent panel (the member
+     * "My alerts" account page). Privacy hardening: a shoulder-surfer or a shared screen never reveals the full
+     * address, while the full value is still used internally for sending and dedupe. Default on.
+     */
+    private static bool $mask_displayed_email = true;
+
     private static array $db = [
         'Email' => 'Varchar(254)',
         'Type' => "Enum('BackInStock,PriceDrop','BackInStock')",
@@ -71,7 +79,9 @@ class StockAlert extends DataObject
         'Consent' => 'Boolean',
         'ConsentAt' => 'Datetime',
         'Source' => "Enum('pdp,sticky,account,api','pdp')",
-        'SubscribedPrice' => 'Currency(19,4)',
+        // ShopCurrency (not plain Currency, whose Nice() defaults to the $ symbol) so the subscribed-at price
+        // renders in the shop's currency on the account panel, the PDP "Watching" row and the price-drop email.
+        'SubscribedPrice' => ShopCurrency::class . '(19,4)',
         'Token' => 'Varchar(64)',
         'ConfirmedAt' => 'Datetime',
         'NotifiedAt' => 'Datetime',
@@ -193,6 +203,41 @@ class StockAlert extends DataObject
         $buyable = $this->getBuyable();
 
         return $buyable ? (string) $buyable->getTitle() : '';
+    }
+
+    /**
+     * The address to show back on a persistent member panel — masked (m•••@example.com) when
+     * {@link $mask_displayed_email} is on (default), the full address otherwise. The real {@link $Email} is always
+     * used for sending and dedupe; this is display-only privacy hardening.
+     */
+    public function getDisplayEmail(): string
+    {
+        return (bool) static::config()->get('mask_displayed_email')
+            ? $this->getMaskedEmail()
+            : (string) $this->Email;
+    }
+
+    /**
+     * This alert's address with the local part masked after its first character: m•••@example.com.
+     */
+    public function getMaskedEmail(): string
+    {
+        return self::maskEmail((string) $this->Email);
+    }
+
+    /**
+     * Mask an email's local part to its first character (m•••@example.com). Static so the storefront/account panels
+     * can reuse it for an address the viewer typed this session without a record.
+     */
+    public static function maskEmail(string $email): string
+    {
+        $email = trim($email);
+        $at = strpos($email, '@');
+        if ($at === false || $at === 0) {
+            return $email === '' ? '' : '•••';
+        }
+
+        return mb_substr($email, 0, 1) . '•••' . substr($email, $at);
     }
 
     /**
