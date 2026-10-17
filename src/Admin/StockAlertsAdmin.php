@@ -21,5 +21,5 @@ class StockAlertsAdmin extends ModelAdmin
 
     private static string $menu_title = 'Stock alerts';
 
-    private static string $menu_icon_class = 'font-icon-bell';
+    private static string $menu_icon_class = 'font-icon-block-bell';
 }
