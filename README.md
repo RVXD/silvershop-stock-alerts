@@ -30,12 +30,12 @@ Back-in-stock is v1. Price-drop alerts are planned for v2 (the model already car
 - symbiote/silverstripe-queuedjobs ^6.0
 
 Back-in-stock alerts need **silvershop/stock** (suggested): the trigger watches its stock rows, so the feature stays
-dormant — no notify UI, no trigger — until it is installed. The storefront UI ships with **silvershop/storefront**.
+dormant — no notify UI, no trigger — until it is installed. The storefront UI ships with **silvershop-suite/storefront**.
 
 ## Installation
 
 ```bash
-composer require silvershop/stock-alerts
+composer require silvershop-suite/stock-alerts
 ```
 
 Then run `dev/build?flush=all`.

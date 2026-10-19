@@ -1,5 +1,5 @@
 {
-    "name": "silvershop/stock-alerts",
+    "name": "silvershop-suite/stock-alerts",
     "description": "Back-in-stock and price-drop notifications for SilverShop: customers subscribe to an out-of-stock product or variation (or watch its price) and get one tokenised, double-opt-in email the moment it is available again or the price falls.",
     "type": "silverstripe-vendormodule",
     "keywords": [
@@ -35,10 +35,10 @@
     },
     "suggest": {
         "silvershop/stock": "Required for back-in-stock alerts — the restock trigger watches its ProductWarehouseStock. The feature stays dormant (no notify UI, no trigger) until it is installed.",
-        "silvershop/store-profile": "Shared shop identity used as the sender name/address for the alert emails.",
+        "silvershop-suite/store-profile": "Shared shop identity used as the sender name/address for the alert emails.",
         "silverstripe/spamprotection": "Pluggable spam protection (reCAPTCHA/hCaptcha/...) auto-enabled on the subscribe form (a honeypot is the always-on fallback).",
-        "silvershop/newsletter": "Lets an optional marketing opt-in on the subscribe form write through the canonical NewsletterConsent gate.",
-        "silvershop/storefront": "Ships the PDP buy-box / sticky-bar notify UI the module lights up."
+        "silvershop-suite/newsletter": "Lets an optional marketing opt-in on the subscribe form write through the canonical NewsletterConsent gate.",
+        "silvershop-suite/storefront": "Ships the PDP buy-box / sticky-bar notify UI the module lights up."
     },
     "scripts": {
         "test": "vendor/bin/phpunit",
