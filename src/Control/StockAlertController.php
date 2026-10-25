@@ -96,7 +96,13 @@ class StockAlertController extends Controller
             return $this->respond($request, true, 'pending', $this->pendingMessage($type), null, $type);
         }
 
+        $member = Security::getCurrentUser();
         $email = trim((string) $request->postVar('email'));
+        // A logged-in member's watch/notify form posts no email field — it watches against their account
+        // address. Fall back to it so a member submit never fails validation with a "no field to fill" error.
+        if ($email === '' && $member && $member->exists()) {
+            $email = trim((string) $member->Email);
+        }
         $buyable = $this->resolveBuyable($request);
         if (!$buyable) {
             return $this->respond($request, false, 'invalid', _t(
@@ -110,7 +116,6 @@ class StockAlertController extends Controller
             return $this->respond($request, false, 'throttled', $this->throttleMessage(), null, $type);
         }
 
-        $member = Security::getCurrentUser();
         $alert = StockAlertService::create()->subscribe($buyable, $email, [
             'Source' => (string) ($request->postVar('Source') ?: 'pdp'),
             'Member' => $member,
